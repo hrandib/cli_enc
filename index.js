@@ -4,29 +4,44 @@ const parser = require('cue-parser');
 const fs = require('fs').promises;
 const path = require('path');
 
-const resDir = "res";
+const rootDir = "res";
+const outDir = "out"
 
-function getNumberOfWithFilesType(files, type) {
+function getFilesByType(files, type) {
     return files.filter(f => {
-        const name = f.name;
-        return path.extname(name) === ('.' + type);
-    }).length
+        return path.extname(f.name) === ('.' + type);
+    })
 }
 
-async function runOnDir(resDir) {
-    console.log("Run on " + resDir);
-    const entries = await fs.readdir(resDir, {withFileTypes: true});
+function useCue(files) {
+    return getFilesByType(files, "flac").length === getFilesByType(files, "cue").length;
+}
+
+async function runOnDir(rootDir, dirPath) {
+    dirPath = dirPath || "";
+    const fullPath = path.join(rootDir, dirPath);
+    const entries = await fs.readdir(fullPath, {withFileTypes: true});
     const dirs = entries.filter(f => f.isDirectory());
     const files = entries.filter(f => f.isFile());
-    dirs.forEach(dir => runOnDir(dir.name));
-    console.log("Flac files: " + getNumberOfWithFilesType(files, "flac"));
-    console.log("Cue files: " + getNumberOfWithFilesType(files, "cue"));
-    // if (getNumberOfWithFilesType(files, "flac") == getNumberOfWithFilesType(files, "cue")) {
-    //     //use cue parser
-    // }
-    // else {
-    //     //use direct conversion
-    // }
+    dirs.forEach(dir => runOnDir(rootDir, path.join(dirPath, dir.name)));
+    // console.log("Run on " + path.join(rootDir, dirPath));
+    // console.log("Out is " + path.join(rootDir, "..", outDir, dirPath));
+    const flacFiles = getFilesByType(files, "flac");
+    const cueFiles = getFilesByType(files, "cue");
+    if (cueFiles.length > 0) {
+        console.log("Cue files: " + getFilesByType(files, "cue").map(f => f.name).toString());
+    }
+    if (flacFiles.length > 0) {
+        console.log("Flac files: " + flacFiles.map(f => f.name).toString());
+        if (useCue(files)) {
+            console.log("use cue");
+            //use cue parser
+        }
+        else {
+            console.log("direct conversion");
+            //use direct conversion
+        }
+    }
 }
 
-runOnDir(resDir);
+runOnDir(rootDir);
