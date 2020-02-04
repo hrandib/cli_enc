@@ -53,8 +53,12 @@ function addJob(params) {
     }
 }
 
+function getOutDir(dirPath) {
+    return !dirPath.length ? rootDir.split(path.sep).pop() : dirPath;
+}
+
 function getFileConvertParams(dir, file) {
-    let params = `-i "${path.join(rootDir, dir, file)}"${outputQuality}"${path.join(outDir, dir, path.parse(file).name)}.mp3"`;
+    let params = `-i "${path.join(rootDir, dir, file)}"${outputQuality}"${path.join(outDir, getOutDir(dir), path.parse(file).name)}.mp3"`;
     let jobName = `${path.join(dir, path.parse(file).name)}.mp3"`
     return {params, jobName};
 }
@@ -97,7 +101,7 @@ function getCueConvertParams(dir, file) {
             const inputFileParam = `-i "${inputFile}"`;
             const i = String(index + 1).padStart(2, '0');
             const outputFileName = `${i}. ${track.title}.mp3`
-            const outputFilePath = `"${path.join(outDir, dir, outputFileName)}" `
+            const outputFilePath = `"${path.join(outDir, getOutDir(dir), outputFileName)}" `
             const metadata = getMetadata(track);
             ffmpegParams += inputFileParam + outputQuality + metadata + outputFilePath
             result.push({params: ffmpegParams, jobName: path.join(dir, outputFileName)});
@@ -106,9 +110,14 @@ function getCueConvertParams(dir, file) {
     return result;
 }
 
-function getFilesByType(files, type) {
+function getFilesByType(files, ...types) {
     return files.filter(f => {
-        return path.extname(f.name) === ('.' + type);
+        for (const type of types) {
+            if (path.extname(f.name) === ('.' + type)) {
+                return true;
+            }
+        }
+        return false;
     })
 }
 
@@ -119,12 +128,13 @@ async function runOnDir(dirPath) {
     const dirs = entries.filter(f => f.isDirectory());
     const files = entries.filter(f => f.isFile());
     dirs.forEach(dir => runOnDir(path.join(dirPath, dir.name)));
-    const flacFiles = getFilesByType(files, "flac");
+    const audioFiles = getFilesByType(files, "flac", "m4a");
     const cueFiles = getFilesByType(files, "cue");
-    if (flacFiles.length > 0) {
+    if (audioFiles.length > 0) {
 //      console.log("Flac files: " + flacFiles.map(f => f.name).toString());
-        await fs.mkdir(path.join(outDir, dirPath), { recursive: true });
-         if (flacFiles.length === cueFiles.length) {
+        await fs.mkdir(
+            path.join(outDir, getOutDir(dirPath)), { recursive: true });
+         if (audioFiles.length === cueFiles.length) {
              cueFiles.forEach(cue => {
                  getCueConvertParams(dirPath, cue.name).forEach(p => {
                         addJob(p);
@@ -132,7 +142,7 @@ async function runOnDir(dirPath) {
                 });
          }
          else {
-             flacFiles.forEach(f => {
+             audioFiles.forEach(f => {
                  addJob(getFileConvertParams(dirPath, f.name));
              });
          }
