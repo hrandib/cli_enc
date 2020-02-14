@@ -1,7 +1,7 @@
 {
-  "name": "flac-mp3",
+  "name": "ll-mp3",
   "version": "1.0.0",
-  "description": "recursive flac-mp3 decoder wrapper",
+  "description": "Recursive lossless -> mp3 encoder based on ffmpeg executable",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,7 +9,7 @@
   "author": "Dmytro Shestakov",
   "license": "ISC",
   "dependencies": {
-    "cue-parser": "^0.2.0"
+    "cue-parser": "^0.2.1"
   },
   "bin": {
     "mp3enc": "./index.js"
