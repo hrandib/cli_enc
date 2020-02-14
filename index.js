@@ -137,7 +137,7 @@ async function runOnDir(dirPath) {
     }
     try {
         for (file of mp3Files) {
-            console.log("Direct copy: " + file.name);
+            console.log("Direct copy: " + path.join(dirPath, file.name));
             fs.copyFile(path.join(fullPath, file.name), path.join(outPath, file.name));
         }
     } catch(e) {
