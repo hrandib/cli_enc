@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 const parser = require('cue-parser');
-const fs = require('fs-extra');
+const fs = require('fs').promises;
 const path = require('path');
 const Queue = require('./Queue');
 const { exec } = require('child_process');
-const deleteEmpty = require('delete-empty');
 
 const outputQuality = " -q:a 0 ";
 const threadCounterMax = require('os').cpus().length;
@@ -36,7 +35,6 @@ function convert(args) {
         --threadCounter;
         // console.log("Threads- " + threadCounter);
         if (threadCounter === 0) {
-            deleteEmpty(outDir, (err, deleted) => console.log("Removed " + deleted.length + " empty directories"));
             const hrend = process.hrtime(hrstart);
             console.log('Execution time (hr): %ds %dms', hrend[0], (hrend[1] / 1000000).toFixed(2))
         }
@@ -132,10 +130,21 @@ async function runOnDir(dirPath) {
     dirs.forEach(dir => runOnDir(path.join(dirPath, dir.name)));
     const audioFiles = getFilesByType(files, "flac", "m4a");
     const cueFiles = getFilesByType(files, "cue");
+    const mp3Files = getFilesByType(files, "mp3");
+    const outPath = path.join(outDir, getOutDir(dirPath));
+    if (audioFiles.length > 0 || mp3Files.length > 0) {
+        await fs.mkdir(outPath, { recursive: true });
+    }
+    try {
+        for (file of mp3Files) {
+            console.log("Direct copy: " + file.name);
+            fs.copyFile(path.join(fullPath, file.name), path.join(outPath, file.name));
+        }
+    } catch(e) {
+        console.log(e);
+    }
     if (audioFiles.length > 0) {
 //      console.log("Flac files: " + flacFiles.map(f => f.name).toString());
-        await fs.mkdir(
-            path.join(outDir, getOutDir(dirPath)), { recursive: true });
          if (audioFiles.length === cueFiles.length) {
              cueFiles.forEach(cue => {
                  getCueConvertParams(dirPath, cue.name).forEach(p => {
@@ -151,21 +160,4 @@ async function runOnDir(dirPath) {
     }
 }
 
-function mp3Filter(src, dest) {
-    if (fs.lstatSync(src).isDirectory()) {
-        return true;
-    }
-    if (src.endsWith(".mp3")) {
-        console.log("Done (raw copy): " + src);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-fs.copy(rootDir, outDir, { filter: mp3Filter }, err => {
-    if (err) {
-        console.log(err);
-    }
-})
 runOnDir();

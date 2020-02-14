@@ -9,9 +9,7 @@
   "author": "Dmytro Shestakov",
   "license": "ISC",
   "dependencies": {
-    "cue-parser": "^0.2.1",
-    "delete-empty": "^3.0.0",
-    "fs-extra": "^8.1.0"
+    "cue-parser": "^0.2.1"
   },
   "bin": {
     "mp3enc": "./index.js"
