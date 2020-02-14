@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 const parser = require('cue-parser');
-const fs = require('fs').promises;
+const fs = require('fs-extra');
 const path = require('path');
 const Queue = require('./Queue');
 const { exec } = require('child_process');
+const deleteEmpty = require('delete-empty');
 
 const outputQuality = " -q:a 0 ";
 const threadCounterMax = require('os').cpus().length;
@@ -35,7 +36,8 @@ function convert(args) {
         --threadCounter;
         // console.log("Threads- " + threadCounter);
         if (threadCounter === 0) {
-            const hrend = process.hrtime(hrstart)
+            deleteEmpty(outDir, (err, deleted) => console.log("Removed " + deleted.length + " empty directories"));
+            const hrend = process.hrtime(hrstart);
             console.log('Execution time (hr): %ds %dms', hrend[0], (hrend[1] / 1000000).toFixed(2))
         }
         next = jobQueue.getNext();
@@ -124,7 +126,7 @@ function getFilesByType(files, ...types) {
 async function runOnDir(dirPath) {
     dirPath = dirPath || "";
     const fullPath = path.join(rootDir, dirPath);
-    const entries = await fs.readdir(fullPath, {withFileTypes: true});
+    const entries = await fs.readdir(fullPath, { withFileTypes: true });
     const dirs = entries.filter(f => f.isDirectory());
     const files = entries.filter(f => f.isFile());
     dirs.forEach(dir => runOnDir(path.join(dirPath, dir.name)));
@@ -149,4 +151,21 @@ async function runOnDir(dirPath) {
     }
 }
 
+function mp3Filter(src, dest) {
+    if (fs.lstatSync(src).isDirectory()) {
+        return true;
+    }
+    if (src.endsWith(".mp3")) {
+        console.log("Done (raw copy): " + src);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+fs.copy(rootDir, outDir, { filter: mp3Filter }, err => {
+    if (err) {
+        console.log(err);
+    }
+})
 runOnDir();
