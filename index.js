@@ -128,7 +128,7 @@ async function runOnDir(dirPath) {
     const dirs = entries.filter(f => f.isDirectory());
     const files = entries.filter(f => f.isFile());
     dirs.forEach(dir => runOnDir(path.join(dirPath, dir.name)));
-    const audioFiles = getFilesByType(files, "flac", "m4a");
+    const audioFiles = getFilesByType(files, "flac", "m4a", "aac");
     const cueFiles = getFilesByType(files, "cue");
     const mp3Files = getFilesByType(files, "mp3");
     const outPath = path.join(outDir, getOutDir(dirPath));
